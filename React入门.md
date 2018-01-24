@@ -131,6 +131,7 @@ React 还提供两种特殊状态的处理函数：
 2. shouldComponentUpdate(object nextProps, object nextState)
 
 组件本质是状态机，输入确定，输出一定确定。状态转换会触发不同的钩子函数。
+
 | 阶段       | 钩子函数，运行顺序由上至下           | 说明  |
 | ------------- |:-------------:| -----:|
 | 初始化     | getDefaultProps | 仅调用一次，实例之间共享引用，且在createClass的时候就已经调用，即使没有使用组件 |
