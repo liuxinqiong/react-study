@@ -1,0 +1,7 @@
+{
+    "name": "MyViewComponent",
+    "version": "0.0.0",
+    "private": true,
+    "main": "./MyViewComponent.js"
+}
+  
