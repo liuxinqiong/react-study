@@ -286,11 +286,34 @@ onClick={() => this.props.onAlert(msg)}
 
 ## 数据获取
 
-* HTML5 Fetch API
+* HTML5 Fetch API，浏览器端直接隶属于 window 的属性，可以直接访问，有兼容性问题，polyfill 解决
 * whatwg-fetch polyfill for browser
 * node-fetch for server-side
 
 当使用 fetch 函数时，为了避免大量的样本代码，需要一个对 URL，凭证，CORS 等进行简单的封装。
+
+# 测试
+
+测试库：
+
+* Mocha：node 和浏览器测试
+* Chai：断言库
+* Enzyme：React 测试工具
+* 其他
+  * jsdom
+  * react-addons-test-utils
+
+```
+yarn test
+```
+
+1. 寻找 src 目录下所.test.js 结尾的文件
+2. mocha 执行找到的文件
+
+约定
+
+1. 测试文件必须以 test.js 结尾，否则 yarn test 检测不到他们
+2. 测试文件命名应该和文件相关
 
 # 参考
 
