@@ -10,8 +10,8 @@ import MyViewComponent from "./components/MyViewComponent";
 
 ReactDOM.render(
   <App name="SKY">
-    <span>hello</span>
-    <span>world</span>
+    <span>hello1</span>
+    <span>world1</span>
   </App>,
   document.getElementById("root")
 );
@@ -25,3 +25,7 @@ ReactDOM.render(<JsStar />, document.getElementById("star"));
 ReactDOM.render(<MyViewComponent />, document.getElementById("viewport"));
 
 registerServiceWorker();
+
+// if (module.hot) {
+//   module.hot.accept();
+// }
