@@ -281,7 +281,7 @@ constructor() {
 * 用 inline function
 
 ```js
-onClick={() => this.props.onAlert(msg)}
+onClick={() => this.props.onAlert(msg)} // 适合传参的情况
 ```
 
 ## 数据获取
