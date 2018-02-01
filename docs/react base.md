@@ -284,6 +284,8 @@ constructor() {
 onClick={() => this.props.onAlert(msg)} // 适合传参的情况
 ```
 
+这里有个细节需要注意，内联箭头函数自动绑定当前环境的 this，但是在拆分组件时，组件间的函数调用会出现问题，解决办法是使用上面两种方式。
+
 ## 数据获取
 
 * HTML5 Fetch API，浏览器端直接隶属于 window 的属性，可以直接访问，有兼容性问题，polyfill 解决

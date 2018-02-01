@@ -119,7 +119,7 @@ if (module.hot) {
 1. 无须刷新，重新加载
 2. 保持应用的状态
 
-## 箭头函数
+## ES6 箭头函数
 
 箭头函数和普通函数区别与优势
 
@@ -142,7 +142,7 @@ if (module.hot) {
   * 箭头函数在参数和箭头之间不能换行。
   * 箭头函数也可以使用闭包
 
-## 类
+## ES6 类
 
 ECMAScript 2015 中引入的 JavaScript 类(classes) 实质上是 JavaScript 现有的基于原型的继承的语法糖。JavaScript 类提供了一个更简单和更清晰的语法来创建对象并处理继承。
 
@@ -194,3 +194,212 @@ ES6 中对象初始化比 ES5 更加简洁
 
 触发一个动作，再通过函数或类方法修改组件的 state，最后组件的 render() 方法再次运行并更新界面。
 ![单项数据流](/docs/one-way.png)
+
+## 绑定
+
+当使用 ES6 编写的 React 组件时，了解在 JavaScript 类的绑定会非常重要。
+
+绑定的步骤是非常重要的，因为类方法不会自动绑定 this 到实例上。是使用 React 主要的 bug 来源。其中一种方式就是类方法在构造函数中正确绑定。
+
+```js
+this.func = this.func.bind(this); // 此时在函数体中this指向类的实例
+```
+
+类方法的绑定也可以写起其他地方，比如写在 render() 函数中。但是你应该避免这么做，因为它会在每次 render 的时候绑定类方法，总结来说组件每次运行更新时都会导致性能消耗。当在构造函数中绑定时，绑定只会在组件实例化时运行一次，这样做是一个更好的方式。
+
+```js
+render() {
+    return (
+      <button
+        onClick={this.onClickMe.bind(this)}
+        type="button"
+      >
+        Click Me
+      </button>
+    );
+  }
+```
+
+有人提出在构造函数中直接定义业务逻辑类方法，但你同样也应该避免这样，因为随着时间的推移它会让你的构造函数变得混乱。构造函数目的只是实例化你的类以及所有的属性。这就是为什么我们应该把业务逻辑应该定义在构造函数之外。
+
+最后值得一提的是类方法可以通过 ES6 的箭头函数做到自动地绑定。定义方法时候使用箭头函数，如果在构造函数中的重复绑定对你有所困扰，你可以使用这种方式代替。React 的官方文档中坚持在构造函数中绑定类方法，所以这里也会采用同样的方式。
+
+```js
+func = () => {
+  console.log(this);
+};
+```
+
+## 事件处理
+
+如果事件处理器需要参数该如何处理呢？通常来说有两种方式
+
+1. 高阶函数
+2. 在外部(render 内部)定义一个包装函数，并且只将定义的函数传递给处理程序
+
+在事件处理程序中使用箭头函数的影响会不会有性能影响呢，每次 render() 执行时，事件处理程序就会实例化一个高阶箭头函数，它可能会对你的程序性能产生影响，但在大多数情况下你都不会注意到这个问题。假设你有一个包含 1000 个项目的巨大数据表，每一行或者列在事件处理程序中都有这样一个箭头函数，这个时候就需要考虑性能影响。
+
+## 和表单交互
+
+合成事件：event.target || event.currentTarget
+
+> React 的 this.setState() 是一个浅合并，在更新一个唯一的属性时，他会保留状态对象中的其他属性
+
+> 在 React 中了解高阶函数是有意义的，因为在 React 中有一个高阶组件的概念
+
+React 的生态使用了大量的函数式编程概念。通常情况下，你会使用一个函数返回另一个函数（高阶函数）。在 JavaScript ES6 中，可以使用箭头函数更简洁的表达这些。
+
+## ES6 解构
+
+在 JavaScript ES6 中有一种更方便的方法来访问对象和数组的属性，叫做解构。
+
+在 JavaScript ES5 中每次访问对象的属性或是数组的元素都需要额外添加一行代码，但在 JavaScript ES6 中可以在一行中进行。
+
+在例子中，我们可以对 this.state 使用解构，达到代码的简短
+
+```js
+const { searchTerm, Users } = this.state;
+```
+
+## 受控组件
+
+表单元素比如 `<input>`, `<textarea>` 和 `<select>` 会以原生 HTML 的形式保存他们自己的状态。一旦有人从外部做了一些修改，它们就会修改内部的值，在 React 中这被称为`不受控组件`，因为它们自己处理状态。在 React 中，你应该确保这些元素变为`受控组件`。
+
+你只需要设置输入框的值属性，这个值已经在 searchTerm 状态属性中保存了。
+
+```js
+<input type="text" value={searchTerm} onChange={this.onSearchChange} />
+```
+
+现在输入框的单项数据流循环是自包含的，组件内部状态是输入框的唯一数据来源。
+
+## 拆分组件
+
+当你的组件特别大时，它在不停地扩展，最终可能会变得混乱。你可以开始将它拆分成若干个更小的组件。
+
+最直接需要解决的问题就是，组件间如何通信呢？答案就是使用 this.props，他可以传递 JavaScript 的任何对象。当你在 App 组件里面使用它时，它有你传递给这些组件的所有值。这样，组件可以沿着组件树向下传递属性。
+
+从 App 组件中提取这些组件之后，你就可以在别的地方去重用它们了。因为组件是通过 props 对象来获取它们的值，所以当你在别的地方重用它时，你可以每一次都传递不同的 props，这些组件就变得可复用了。
+
+## 可组合组件
+
+在 props 对象中还有一个小小的属性可供使用: children 属性。通过它你可以将元素从上层传递到你的组件中，这些元素对你的组件来说是未知的，但是却为组件相互组合提供了可能性。
+
+它不仅可以把文本作为子元素传递，还可以将一个元素或者元素树（它还可以再次封装成组件）作为子元素传递。children 属性让组件相互组合到一起成为可能。
+
+## 可复用组件
+
+让我们来考虑一下，我们构造一个 Button 组件如下：
+
+```js
+class Button extends Component {
+  render() {
+    const { onClick, className = "", children } = this.props;
+
+    return (
+      <button onClick={onClick} className={className} type="button">
+        {children}
+      </button>
+    );
+  }
+}
+```
+
+请问这样的用处是什么呢，难道只是为了省略一个 type 属性的书写吗？答案是否定的！
+
+必须要考虑到长期投资。想象在你的应用中有若干个 button，但是你想改变它们的一个属性、样式或者行为。如果没有这个组件的话，你就必须重构每个 button。相反，Button 组件拥有`单一可信数据源`。一个 Button 组件可以立即重构所有 button。一个 Button 组件统治所有的 button。
+
+默认参数：Button 组件期望在 props 里面有一个 className 属性. className 属性是 React 基于 HTML 属性 class 的另一个衍生物。但是当使用 Button 组件时，我们并没有传递任何 className 属性，所以在 Button 组件的代码中，我们更应该明确地标明 className 是可选的。
+
+## 组件类型
+
+* 函数式无状态组件：类组件就是函数，它们接收一个输入并返回一个输出。输入是 props，输出就是一个普通的 JSX 组件实例。到这里，它和 ES6 类组件非常的相似。然而，函数式无状态组件是函数（函数式的），并且它们没有本地状态（无状态的）。你不能通过 this.state 或者 this.setState() 来访问或者更新状态，因为这里没有 this 对象。此外，它也没有生命周期方法。虽然你还没有学过生命周期方法，但是你已经用到了其中两个：constructor() and render()。constructor 在一个组件的生命周期中只执行一次，而 render() 方法会在最开始执行一次，并且每次组件更新时都会执行。
+* ES6 类组件：在类的定义中，它们继承自 React 组件。extend 会注册所有的生命周期方法，只要在 React component API 中，都可以在你的组件中使用。通过这种方式你可以使用 render() 类方法。此外，通过使用 this.state 和 this.setState()，你可以在 ES6 类组件中储存和操控 state。
+* React.createClass：这类组件声明曾经在老版本的 React 中使用，仍然存在于很多 ES5 React 应用中。但是为了支持 JavaScript ES6，Facebook 声明它已经不推荐使用了。他们还在 React 15.5 中加入了不推荐使用的警告。
+
+> 什么时候更适合使用函数式无状态组件而非 ES6 类组件？一个经验法则就是当你不需要本地状态或者组件生命周期方法时，你就应该使用函数式无状态组件。最开始一般使用函数式无状态组件来实现你的组件，一旦你需要访问 state 或者生命周期方法时，你就必须要将它重构成一个 ES6 类组件。
+
+例子：重构 Search 组件
+
+```js
+function Search(props) {
+  const { value, onChange, children } = props;
+  return (
+    <form>
+      {children} <input type="text" value={value} onChange={onChange} />
+    </form>
+  );
+}
+```
+
+如果优化上面的代码呢？
+
+1. 入参解构
+2. 箭头函数
+
+```js
+const Search = ({ value, onChange, children }) => (
+  <form>
+    {children} <input type="text" value={value} onChange={onChange} />
+  </form>
+);
+```
+
+## 给组件声明样式
+
+使用 React 的 className 即可，JSX 混合了 HTML 和 JavaScript，其实在 JSX 中还可以直接使用 CSS，直接实用元素的 style 属性即可。
+
+```js
+// way1
+<div style={{width:200px}}></div>
+// way2
+const smallColumn = {
+  width: '10%',
+};
+<div style={smallColumn}></div>
+```
+
+# 数据交互
+
+## 生命周期方法
+
+这些方法是嵌入 React 组件生命周期中的一组挂钩。它们可以在 ES6 类组件中使用，但是不能在无状态组件中使用。
+
+constructor（构造函数）只有在组件实例化并插入到 DOM 中的时候才会被调用。组件实例化的过程称作组件的挂载（mount）。
+
+render() 方法也会在组件挂载的过程中被调用，同时当组件更新的时候也会被调用。每当组件的状态（state）或者属性（props）改变时，组件的 render() 方法都会被调用。
+
+在组件挂载的过程中还有另外两个生命周期方法：componentWillMount() 和 componentDidMount()。
+
+在挂载过程中有四个生命周期方法，它们的调用顺序是这样的：
+
+* constructor()
+* componentWillMount()
+* render()
+* componentDidMount()
+
+但是当组件的状态或者属性改变的时候用来更新组件的生命周期是什么样的呢？总的来说，它一共有 5 个生命周期方法用于组件更新，调用顺序如下：
+
+* componentWillReceiveProps()
+* shouldComponentUpdate()
+* componentWillUpdate()
+* render()
+* componentDidUpdate()
+
+最后但同样重要的，组件卸载也有生命周期。它只有一个生命周期方法：componentWillUnmount()。
+
+> 即使在一个很大的 React 应用当中，除了 constructor() 和 render() 比较常用外，你只会用到一小部分生命周期函数。
+
+即使这样，了解每个生命周期方法的适用场景还是对你有帮助的：
+
+* **constructor(props)** - 它在组件初始化时被调用。在这个方法中，你可以设置初始化状态以及绑定类方法。
+* **componentWillMount()** - 它在 render() 方法之前被调用。这就是为什么它可以用作去设置组件内部的状态，因为它`不会触发组件的再次渲染`。但一般来说，还是`推荐在 constructor() 中去初始化状态`。
+* **componentWillReceiveProps(nextProps)** - 这个方法在一个`更新生命周期`（update lifecycle）中被调用。`新的属性会作为它的输入`。因此你可以利用 this.props 来对比之后的属性和之前的属性，`基于对比的结果去实现不同的行为`。此外，你可以基于新的属性来设置组件的状态。
+* **shouldComponentUpdate(nextProps, nextState)** - `每次组件因为状态或者属性更改而更新时，它都会被调用`。你将在成熟的 React 应用中使用它来进行`性能优化`。在一个更新生命周期中，组件及其子组件将`根据该方法返回的布尔值来决定是否重新渲染`。这样你可以阻止组件的`渲染生命周期`（render lifecycle）方法，避免`不必要的渲染`。
+* **componentWillUpdate(nextProps, nextState)** - 这个方法是 render() 执行之前的`最后一个方法`。你已经拥有下一个属性和状态，它们可以在这个方法中任由你处置。你可以利用这个方法在渲染之前进行最后的准备。注意在这个生命周期方法中你`不能再触发 setState()`。如果你想基于新的属性计算状态，你必须利用 componentWillReceiveProps()。
+* **render()** - 这个生命周期方法是必须有的，它返回作为组件输出的元素。这个方法应该是一个`纯函数`，因此不应该在这个方法中修改组件的状态。它把属性和状态作为输入并且返回（需要渲染的）元素
+* **componentDidUpdate(prevProps, prevState)** - 这个方法在 render() 之后立即调用。你可以用它当成`操作 DOM 或者执行更多异步请求`的机会。
+* **componentDidMount()** - 它仅在组件挂载后执行一次。这是发起`异步请求去 API 获取数据的绝佳时期`。获取到的数据将被保存在内部组件的状态中然后在 render() 生命周期方法中展示出来。
+* **componentWillUnmount()** - 它会在组件销毁之前被调用。你可以利用这个生命周期方法去执行任何`清理任务`。
+
+还有另一个生命周期方法：componentDidCatch(error, info)。它在 React 16 中引入，用来捕获组件的错误。举例来说，在你的应用中展示样本数据本来是没问题的。但是可能会有列表的本地状态被意外设置成 null 的情况发生（例如从外部 API 获取列表失败时，你把本地状态设置为空了）。然后它就不能像之前一样去过滤（filter）和映射（map）这个列表，因为它不是一个空列表（[]）而是 null。这时组件就会崩溃，然后整个应用就会挂掉。现在你可以用 componentDidCatch() 来捕获错误，将它存在本地的状态中，然后像用户展示一条信息，说明应用发生了错误。
