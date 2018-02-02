@@ -455,3 +455,243 @@ this.setState({
 ## 错误处理
 
 在 React 中处理错误的基础知识，也就是本地状态和条件渲染。本质上来讲，错误只是 React 的另一种状态。当一个错误发生时，你先将它存在本地状态中，而后利用条件渲染在组件中显示错误信息。
+
+# 代码组织和测试
+
+如何保证在一个规模增长的应用中代码的可维护性，我们需要去了解如何去组织代码，以便在构建你的工程目录和文件时时遵循最佳实践。了解如何通过测试提高代码的健壮性。
+
+## ES6 模块：Import 和 Export
+
+在 JavaScript ES6 中你可以从模块中导入和导出某些功能。这些功能可以是函数、类、组件、常量等等。基本上你可以将所有东西都赋值到一个变量上。模块可以是单个文件，或者一个带有入口文件的文件夹。
+
+import 和 export 语句可以帮助你在多个不同的文件间共享代码。在此之前，JavaScript 生态中已经有好几种方案了。从 JavaScript ES6 后，现在是一种原生的方式了。
+
+此外这些语言还有利于代码分割。代码风格就是将代码分配到多个文件中去，以保持代码的重用性和可维护性。前者得以成立是因为你可以在不同的文件中导入相同的代码片段。而后者得以成立是因为你维护的代码是唯一的代码源。
+
+最后但也很重要的是，它能帮助你思考代码封装。不是所有的功能都需要从一个文件导出。其中一些功能应该只在定义它的文件中使用。一个文件导出的功能是这个文件公共 API。只有导出的功能才能被其他地方重用。这遵循了封装的最佳实践。
+
+* 命名的导出：你可以导出一个或者多个变量，可以用对象的方式导入另外文件的全部变量`import * as object`。
+* 导入可以有一个别名`as`
+* default 语句
+  * 为了导出和导入单一功能
+  * 为了强调一个模块输出 API 中的主要功能
+  * 这样可以向后兼容 ES5 只有一个导出物的功能
+  * 在导入 default 输出时省略花括号。
+  * 只能有一个默认的导出
+
+### import 深入
+
+基础语法
+
+```js
+import defaultExport from "module-name";
+import * as name from "module-name";
+import { export1 , export2 as alias2 , [...] } from "module-name";
+import defaultExport, { export [ , [...] ] } from "module-name";
+import defaultExport, * as name from "module-name";
+import "module-name";
+```
+
+> 同时使用默认语法与命名空间导入或命名导入，在这种情况下，默认导入将必须首先声明
+
+### export 深入
+
+基础语法
+
+```js
+export { name1, name2, …, nameN };
+export { variable1 as name1, variable2 as name2, …, nameN };
+export let name1 = …, name2 = …, …, nameN; // also var, const
+export default expression;
+export { name1 as default, … };
+export * from …; // 不会导出已导入模块中的默认导出
+export { name1, name2, …, nameN } from …;
+export { import1 as name1, import2 as name2, …, nameN } from …;
+```
+
+如果需要导出默认值，请使用下列代码：
+
+```js
+import mod from "mod";
+export default mod;
+```
+
+## 代码组织与 ES6 模块
+
+一旦你的应用增长，你应该考虑将这些组件放到多个模块中去，只有这种方式你的应用才能扩展。在这里推荐一种模块。
+
+* 抽象组件资源到特定文件夹
+  * 文件名中的 index 名称表示他是这个文件夹的入口文件。这是一个命名共识，你也可以使用你习惯的命名。在这个模块结构中，一个组件被 JavaScript 文件中组件声明，样式文件，测试共同定义。
+* 抽象 components 文件夹存放文件
+* 抽象 constants 文件夹存放常量
+
+当你使用 index.js 这个命名共识的时候，你可以在相对路径中省略文件名。
+
+但是 index.js 文件名称后面发生了什么？这个约定是在 node.js 世界里面被引入的。index 文件是一个模块的入口。它描述了一个模块的公共 API。外部模块只允许通过 index.js 文件导入模块中的共享代码。
+
+考虑用下面虚构的模块结构进行演示，假设你有 Buttons 文件夹，下面有文件 index.js，SubmitButton.js，SaveButton.js，CancelButton.js，这个 Buttons/ 文件夹有多个按钮组件定义在了不同的文件中。每个文件都 export default 特定的组件，使组件能够被 Buttons/index.js 导入。Buttons/index.js 文件导入所有不同的表现的按钮，并将他们导出作为模块的公共 API。
+
+```js
+// index.js
+import SubmitButton from "./SubmitButton";
+import SaveButton from "./SaveButton";
+import CancelButton from "./CancelButton";
+
+export { SubmitButton, SaveButton, CancelButton };
+
+// 导入Button
+import { SubmitButton, SaveButton, CancelButton } from "../Buttons";
+
+// 在这些约束下，通过其他文件导入而不是通过 index.js 模块的话会是糟糕的实践。这会破坏封装的原则。
+
+import SubmitButton from "../Buttons/SubmitButton"; // 糟糕的实践，不要这样做
+```
+
+## 快照测试和 Jest
+
+在编程中测试代码是基本，并应该被视为必不可少的。你应该想去保持高质量的代码并确保一切如预期般工作。
+
+测试金字塔。其中有端到端测试，集成测试和单元测试。
+
+* 单元测试用来测试一块独立的小块代码。它可以是被一个单元测试覆盖的一个函数。
+* 集成测试可以覆盖验证是否这些单元组如预期般工作。
+* 端到端测试是一个真实用户场景的模拟。可能是自动地启动一个浏览器，模拟一个用户在 Web 应用中的登录流程。单元测试相对来说快速而且易于书写和维护，端到端测试反之。
+
+> 你需要很多的单元测试去覆盖代码中不同的函数。然后，你需要一些基础测试，去覆盖最重要的函数功能的联动，是否如预期一样工作。最后但也很重要的是，你可能需要一点点端到端测试去模拟你 Web 应用程序中的关键情境。
+
+React 中测试的基础是组件测试，基本可以视作单元测试，还有部分的快照测试。在后面的章节中管理组件相关的测试需要用到一个叫 `Enzyme` 的库。本章中，你会主要关注另外一种测试：快照测试。这里正好引入 `Jest`。
+
+> Jest 是一个在 Facebook 使用的测试框架。在 React 社区，它被用来做 React 的组件测试。幸好 create-react-app 已经包含了 Jest，所以你不需要担心启动配置的问题。
+
+### Jest
+
+Jest 赋予你写快照测试的能力。这些测试会生成一份渲染好的组件的快照，并在作和未来的快照的比对。当一个未来的测试改变了，测试会给出提示。你可以接受这个快照改变，因为你有意改变了组件实现，或者拒绝这个改变并要去调查错误的原因。快照测试可以非常好地和单元测试互补，因为这仅会比对渲染输出的差异。这并不会增加巨额的维护成本，因为只有在你有意改变组件中渲染输出的时候，才需要接受快照改变。
+
+> it、describe、test
+
+Jest 将快照保存在一个文件夹中。只有这样它才可以和未来的快照比对。此外这些快照也可以通过一个文件夹共享。
+
+当你写快照之前，可能需要安装一个工具库。
+
+```
+npm install --save-dev react-test-renderer
+```
+
+一旦你改变了 App 组件中的 render 块的输出，这个测试应该会失败。然后你可以决定是否需要更新快照，或去调查 App 组件。
+
+基本上 renderer.create() 函数会创建一份你的 App 组件的快照。它会模拟渲染，并将 DOM 存储在快照中。之后，会期望这个快照和上传测试运行的快照匹配。使用这种方式，可以确保你的 DOM 保持稳定而不会意外被改变。
+
+> 快照测试常常就保持这样。只需要确保组件输出不会改变。一旦输出改变了，你必须决定是否接受这个改变。否则当输出和期望输出不符合时，你需要去修复组件。
+
+### 单元测试和 Enzyme
+
+Enzyme 是一个由 Airbnb 维护的测试工具，可以用来断言、操作、遍历 React 组件。你可以用它来管理单元测试，在 React 测试中与快照测试互补。
+
+安装(create-react-app 不默认包含)
+
+```
+npm install --save-dev enzyme react-addons-test-utils enzyme-adapter-react-16
+```
+
+Enzyme API 中总共有三种渲染机制。你已经知道了 shallow()，这里还有 mount() 和 render() 方法。这两种方式都会初始化父组件和所有的子组件。此外 mount() 还给予你调用组件生命周期的方法。但是什时候该使用哪种渲染机制呢？这里有一些建议：
+
+* 不论怎样都优先尝试使用浅渲染（shallow()）
+* 如果需要测试 componentDidMount() 或 componentDidUpdate()， 使用 mount()
+* 如果你想测试组件的生命周期和子组件的行为，使用 mount()
+* 如果你想测试一个组件的子组件的渲染，并且不关心生命周期方法和减少些渲染的花销的话，使用 render()
+
+## 组件接口和 PropTypes
+
+你可能知道 TypeScript 或者 Flow 在 JavaScript 中引入了类型接口。一个类型语言更不容易出错，因为代码会根据它的程序文本进行验证。编辑器或者其他工具可以在程序运行之前就捕获这些错误，可以让你的应用更健壮。
+
+本书中不会为你介绍 Flow 或者 Typescript，但是有另外一种简洁的方式可以在组件中检查类型。React 有一种内建的类型检查器来防止出现 Bug。你可以使用 PropTypes 来描述你的组件接口。所有从父组件传递给子组件的 props 都会基于子组件的 PropTypes 接口得到验证。
+
+安装和导入 PropTypes
+
+```
+npm install prop-types
+import PropTypes from 'prop-types';
+```
+
+使用
+
+```js
+Button.propTypes = {
+  onClick: PropTypes.func,
+  className: PropTypes.string,
+  children: PropTypes.node
+};
+```
+
+基础的基本类型和复杂对象 PropTypes 有：
+
+* PropTypes.array
+* PropTypes.bool
+* PropTypes.func
+* PropTypes.number
+* PropTypes.object
+* PropTypes.string
+
+有另外两个 PropTypes 用来定义一个可渲染的片段（节点）。比如一段字符串，或者一个 React 元素。
+
+* PropTypes.node
+* PropTypes.element
+
+现在为 Button 定义的所有 PropTypes 都是可选的。参数可以为 null 或者 undefined。但是对于那么几个需要强制定义的 props，你可以标记这些 props 是必须传递给组件的。直接添加.isRequired 即可。
+
+我们可以给元素定义的更加明确
+
+```js
+Table.propTypes = {
+  list: PropTypes.arrayOf(
+    PropTypes.shape({
+      objectID: PropTypes.string.isRequired,
+      author: PropTypes.string,
+      url: PropTypes.string,
+      num_comments: PropTypes.number,
+      points: PropTypes.number
+    })
+  ).isRequired,
+  onDismiss: PropTypes.func.isRequired
+};
+```
+
+### 默认值
+
+组件中定义默认 props 有两种方式
+
+1. 通过 ES6 默认参数值
+2. react 组件 defaultProps 属性
+
+PropTypes 类型检查会在默认 props 生效后执行校验。
+
+# 高级 React 组件
+
+## 引用 DOM 元素
+
+有时我们需要在 React 中与 DOM 节点进行交互。ref 属性可以让我们访问元素中的一个节点。通常，访问 DOM 节点是 React 中的一种反模式，因为我们应该遵循它的声明式编程和单向数据流。但是在某些情况下，我们仍然需要访问 DOM 节点。官方文档提到了三种情况：
+
+* 使用 DOM API（focus 事件，媒体播放等）
+* 调用命令式 DOM 节点动画
+* 与需要 DOM 节点的第三方库集成
+
+通常，无状态组件和 ES6 类组件中都可以使用 ref 属性。简单例子如下
+
+```js
+<input
+  type="text"
+  value={value}
+  onChange={onChange}
+  ref={node => {
+    this.input = node;
+  }}
+/>
+```
+
+## 高阶组件
+
+高阶组件（HOC）是 React 中的一个高级概念。HOC 与高阶函数是等价的。它接受任何输入 - 多数时候是一个组件，也可以是可选参数 - 并返回一个组件作为输出。返回的组件是输入组件的增强版本，并且可以在 JSX 中使用。
+
+HOC 可用于不同的情况，比如：准备属性，管理状态或更改组件的表示形式。其中一种情况是将 HOC 用于帮助实现条件渲染。
+
+有一个惯例是用 “with” 前缀来命名 HOC。条件渲染是 HOC 的一种绝佳用例。

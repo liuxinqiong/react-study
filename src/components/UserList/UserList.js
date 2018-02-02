@@ -1,13 +1,17 @@
 import React, { Component } from "react";
+import fetch from "isomorphic-fetch";
+import Button from "../Button";
+import PropTypes from "prop-types";
 
-const DEFAULT_QUERY = "redux";
-const DEFAULT_HPP = "100";
-
-const PATH_BASE = "https://hn.algolia.com/api/v1";
-const PATH_SEARCH = "/search";
-const PARAM_SEARCH = "query=";
-const PARAM_PAGE = "page=";
-const PARAM_HPP = "hitsPerPage=";
+import {
+  DEFAULT_QUERY,
+  DEFAULT_HPP,
+  PATH_BASE,
+  PATH_SEARCH,
+  PARAM_SEARCH,
+  PARAM_PAGE,
+  PARAM_HPP
+} from "../../constants";
 
 // 临时测试数据
 const Users = [
@@ -45,7 +49,8 @@ class UserList extends Component {
       results: null,
       searchKey: "", // 因为searchTerm 是动态值
       searchTerm: DEFAULT_QUERY,
-      error: null
+      error: null,
+      isLoading: false
     };
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
@@ -84,11 +89,13 @@ class UserList extends Component {
       results: {
         ...results,
         [searchKey]: { hits: updateList, page }
-      }
+      },
+      isLoading: false
     });
   }
 
   fetchSearchTopStories(searchTerm, page = 0) {
+    this.setState({ isLoading: true });
     fetch(
       `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`
     )
@@ -117,7 +124,7 @@ class UserList extends Component {
   }
 
   render() {
-    const { results, searchTerm, searchKey, error } = this.state;
+    const { results, searchTerm, searchKey, error, isLoading } = this.state;
     const page =
       (results && results[searchKey] && results[searchKey].page) || 0;
     const list =
@@ -146,11 +153,12 @@ class UserList extends Component {
         )}
 
         <div className="interactions">
-          <button
+          <ButtonWithLoading
+            isLoading={isLoading}
             onClick={() => this.fetchSearchTopStories(searchKey, page + 1)}
           >
             More
-          </button>
+          </ButtonWithLoading>
         </div>
       </div>
     );
@@ -158,11 +166,24 @@ class UserList extends Component {
 }
 
 class Search extends Component {
+  componentDidMount() {
+    if (this.input) {
+      this.input.focus();
+    }
+  }
+
   render() {
     const { value, onChange, onSubmit, children } = this.props;
     return (
       <form onSubmit={onSubmit}>
-        <input type="text" value={value} onChange={onChange} />
+        <input
+          type="text"
+          value={value}
+          onChange={onChange}
+          ref={node => {
+            this.input = node;
+          }}
+        />
         <button type="submit">{children}</button>
       </form>
     );
@@ -176,19 +197,19 @@ class Table extends Component {
       <div className="table">
         {result.filter(isSearched(pattern)).map((item, index) => (
           <div key={item.objectID} className="table-row">
-            <span>
+            <span style={{ width: "40%" }}>
               <a href={item.url}>{item.title}</a>
             </span>
-            <span>{item.author}</span>
-            <span>{item.num_comments}</span>
-            <span>{item.points}</span>
-            <span>
-              <button
+            <span style={{ width: "30%" }}>{item.author}</span>
+            <span style={{ width: "10%" }}>{item.num_comments}</span>
+            <span style={{ width: "10%" }}>{item.points}</span>
+            <span style={{ width: "10%" }}>
+              <Button
                 onClick={() => onDismiss(item.objectID)}
                 className="button-inline"
               >
                 Dismiss
-              </button>
+              </Button>
             </span>
           </div>
         ))}
@@ -197,4 +218,17 @@ class Table extends Component {
   }
 }
 
+Table.propTypes = {
+  result: PropTypes.array.isRequired,
+  onDismiss: PropTypes.func.isRequired
+};
+
+const Loading = () => <div>Loading ...</div>;
+
+const withLoading = Component => ({ isLoading, ...rest }) =>
+  isLoading ? <Loading /> : <Component {...rest} />;
+
+const ButtonWithLoading = withLoading(Button);
+
 export default UserList;
+export { Search, Table };
