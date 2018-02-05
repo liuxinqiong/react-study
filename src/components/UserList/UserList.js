@@ -52,6 +52,22 @@ const isSearched = searchTerm => item => {
     : false;
 };
 
+const updateSearchTopStoriesState = (hits, page) => prevState => {
+  const { searchKey, results } = prevState;
+
+  const oldHits = results && results[searchKey] ? results[searchKey].hits : [];
+
+  const updatedHits = [...oldHits, ...hits];
+
+  return {
+    results: {
+      ...results,
+      [searchKey]: { hits: updatedHits, page }
+    },
+    isLoading: false
+  };
+};
+
 class UserList extends Component {
   constructor(props) {
     super(props);
@@ -60,9 +76,7 @@ class UserList extends Component {
       searchKey: "", // 因为searchTerm 是动态值
       searchTerm: DEFAULT_QUERY,
       error: null,
-      isLoading: false,
-      sortKey: "NONE",
-      isSortReverse: false
+      isLoading: false
     };
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
@@ -70,14 +84,15 @@ class UserList extends Component {
     this.fetchSearchTopStories = this.fetchSearchTopStories.bind(this);
     this.onSearchSubmit = this.onSearchSubmit.bind(this);
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
-    this.onSort = this.onSort.bind(this);
+    // this.onSort = this.onSort.bind(this);
   }
-
+  /* 排序提取到Table组件中，因为仅和Table相关
   onSort(sortKey) {
     const isSortReverse =
       this.state.sortKey === sortKey && !this.state.isSortReverse;
     this.setState({ sortKey, isSortReverse });
   }
+  */
 
   onDismiss(id) {
     const { searchKey, results } = this.state;
@@ -100,17 +115,18 @@ class UserList extends Component {
 
   setSearchTopStories(result) {
     const { hits, page } = result;
-    const { searchKey, results } = this.state;
-    const oldHits =
-      results && results[searchKey] ? results[searchKey].hits : [];
-    const updateList = [...oldHits, ...result.hits];
-    this.setState({
-      results: {
-        ...results,
-        [searchKey]: { hits: updateList, page }
-      },
-      isLoading: false
-    });
+    this.setState(updateSearchTopStoriesState(hits, page));
+    // const { searchKey, results } = this.state;
+    // const oldHits =
+    //   results && results[searchKey] ? results[searchKey].hits : [];
+    // const updateList = [...oldHits, ...hits];
+    // this.setState({
+    //   results: {
+    //     ...results,
+    //     [searchKey]: { hits: updateList, page }
+    //   },
+    //   isLoading: false
+    // });
   }
 
   fetchSearchTopStories(searchTerm, page = 0) {
@@ -143,15 +159,7 @@ class UserList extends Component {
   }
 
   render() {
-    const {
-      results,
-      searchTerm,
-      searchKey,
-      error,
-      isLoading,
-      sortKey,
-      isSortReverse
-    } = this.state;
+    const { results, searchTerm, searchKey, error, isLoading } = this.state;
     const page =
       (results && results[searchKey] && results[searchKey].page) || 0;
     const list =
@@ -177,9 +185,6 @@ class UserList extends Component {
         ) : (
           <Table
             result={list}
-            sortKey={sortKey}
-            isSortReverse={isSortReverse}
-            onSort={this.onSort}
             pattern={searchTerm}
             onDismiss={this.onDismiss}
           />
@@ -224,15 +229,25 @@ class Search extends Component {
 }
 
 class Table extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      sortKey: "NONE",
+      isSortReverse: false
+    };
+    this.onSort = this.onSort.bind(this);
+  }
+
+  onSort(sortKey) {
+    const isSortReverse =
+      this.state.sortKey === sortKey && !this.state.isSortReverse;
+    this.setState({ sortKey, isSortReverse });
+  }
+
   render() {
-    const {
-      result,
-      pattern,
-      onDismiss,
-      sortKey,
-      isSortReverse,
-      onSort
-    } = this.props;
+    const { result, pattern, onDismiss } = this.props;
+    const { sortKey, isSortReverse } = this.state;
+
     const sortedList = SORTS[sortKey](result);
     const reverseSortedList = isSortReverse ? sortedList.reverse() : sortedList;
 
@@ -240,22 +255,38 @@ class Table extends Component {
       <div className="table">
         <div className="table-header">
           <span style={{ width: "40%" }}>
-            <Sort sortKey={"TITLE"} onSort={onSort} activeSortKey={sortKey}>
+            <Sort
+              sortKey={"TITLE"}
+              onSort={this.onSort}
+              activeSortKey={sortKey}
+            >
               Title
             </Sort>
           </span>
           <span style={{ width: "30%" }}>
-            <Sort sortKey={"AUTHOR"} onSort={onSort} activeSortKey={sortKey}>
+            <Sort
+              sortKey={"AUTHOR"}
+              onSort={this.onSort}
+              activeSortKey={sortKey}
+            >
               Author
             </Sort>
           </span>
           <span style={{ width: "10%" }}>
-            <Sort sortKey={"COMMENTS"} onSort={onSort} activeSortKey={sortKey}>
+            <Sort
+              sortKey={"COMMENTS"}
+              onSort={this.onSort}
+              activeSortKey={sortKey}
+            >
               Comments
             </Sort>
           </span>
           <span style={{ width: "10%" }}>
-            <Sort sortKey={"POINTS"} onSort={onSort} activeSortKey={sortKey}>
+            <Sort
+              sortKey={"POINTS"}
+              onSort={this.onSort}
+              activeSortKey={sortKey}
+            >
               Points
             </Sort>
           </span>
