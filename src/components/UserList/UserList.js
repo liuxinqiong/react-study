@@ -2,7 +2,9 @@ import React, { Component } from "react";
 import fetch from "isomorphic-fetch";
 import Button from "../Button";
 import PropTypes from "prop-types";
-
+import WithMouseTracker from "../WithMouseTracker";
+import { sortBy } from "lodash";
+import classNames from "classnames";
 import {
   DEFAULT_QUERY,
   DEFAULT_HPP,
@@ -25,6 +27,14 @@ const Users = [
   { name: "ws", id: 8 },
   { name: "lzz", id: 9 }
 ];
+
+const SORTS = {
+  NONE: list => list,
+  TITLE: list => sortBy(list, "title"),
+  AUTHOR: list => sortBy(list, "author"),
+  COMMENTS: list => sortBy(list, "num_comments").reverse(),
+  POINTS: list => sortBy(list, "points").reverse()
+};
 
 // es5
 /*
@@ -50,7 +60,9 @@ class UserList extends Component {
       searchKey: "", // 因为searchTerm 是动态值
       searchTerm: DEFAULT_QUERY,
       error: null,
-      isLoading: false
+      isLoading: false,
+      sortKey: "NONE",
+      isSortReverse: false
     };
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
@@ -58,6 +70,13 @@ class UserList extends Component {
     this.fetchSearchTopStories = this.fetchSearchTopStories.bind(this);
     this.onSearchSubmit = this.onSearchSubmit.bind(this);
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
+    this.onSort = this.onSort.bind(this);
+  }
+
+  onSort(sortKey) {
+    const isSortReverse =
+      this.state.sortKey === sortKey && !this.state.isSortReverse;
+    this.setState({ sortKey, isSortReverse });
   }
 
   onDismiss(id) {
@@ -124,13 +143,24 @@ class UserList extends Component {
   }
 
   render() {
-    const { results, searchTerm, searchKey, error, isLoading } = this.state;
+    const {
+      results,
+      searchTerm,
+      searchKey,
+      error,
+      isLoading,
+      sortKey,
+      isSortReverse
+    } = this.state;
     const page =
       (results && results[searchKey] && results[searchKey].page) || 0;
     const list =
       (results && results[searchKey] && results[searchKey].hits) || [];
     return (
       <div className="page">
+        <div>
+          {this.props.x}:{this.props.y}
+        </div>
         <div className="interactions">
           <Search
             value={searchTerm}
@@ -147,6 +177,9 @@ class UserList extends Component {
         ) : (
           <Table
             result={list}
+            sortKey={sortKey}
+            isSortReverse={isSortReverse}
+            onSort={this.onSort}
             pattern={searchTerm}
             onDismiss={this.onDismiss}
           />
@@ -192,10 +225,43 @@ class Search extends Component {
 
 class Table extends Component {
   render() {
-    const { result, pattern, onDismiss } = this.props;
+    const {
+      result,
+      pattern,
+      onDismiss,
+      sortKey,
+      isSortReverse,
+      onSort
+    } = this.props;
+    const sortedList = SORTS[sortKey](result);
+    const reverseSortedList = isSortReverse ? sortedList.reverse() : sortedList;
+
     return (
       <div className="table">
-        {result.filter(isSearched(pattern)).map((item, index) => (
+        <div className="table-header">
+          <span style={{ width: "40%" }}>
+            <Sort sortKey={"TITLE"} onSort={onSort} activeSortKey={sortKey}>
+              Title
+            </Sort>
+          </span>
+          <span style={{ width: "30%" }}>
+            <Sort sortKey={"AUTHOR"} onSort={onSort} activeSortKey={sortKey}>
+              Author
+            </Sort>
+          </span>
+          <span style={{ width: "10%" }}>
+            <Sort sortKey={"COMMENTS"} onSort={onSort} activeSortKey={sortKey}>
+              Comments
+            </Sort>
+          </span>
+          <span style={{ width: "10%" }}>
+            <Sort sortKey={"POINTS"} onSort={onSort} activeSortKey={sortKey}>
+              Points
+            </Sort>
+          </span>
+          <span style={{ width: "10%" }}>Archive</span>
+        </div>
+        {reverseSortedList.filter(isSearched(pattern)).map((item, index) => (
           <div key={item.objectID} className="table-row">
             <span style={{ width: "40%" }}>
               <a href={item.url}>{item.title}</a>
@@ -223,6 +289,22 @@ Table.propTypes = {
   onDismiss: PropTypes.func.isRequired
 };
 
+const Sort = ({ sortKey, activeSortKey, onSort, children }) => {
+  // const sortClass = ["button-inline"];
+
+  // if (sortKey === activeSortKey) {
+  //   sortClass.push("button-active");
+  // }
+  const sortClass = classNames("button-inline", {
+    "button-active": sortKey === activeSortKey
+  });
+  return (
+    <Button onClick={() => onSort(sortKey)} className={sortClass}>
+      {children}
+    </Button>
+  );
+};
+
 const Loading = () => <div>Loading ...</div>;
 
 const withLoading = Component => ({ isLoading, ...rest }) =>
@@ -230,5 +312,5 @@ const withLoading = Component => ({ isLoading, ...rest }) =>
 
 const ButtonWithLoading = withLoading(Button);
 
-export default UserList;
+export default WithMouseTracker(UserList);
 export { Search, Table };
